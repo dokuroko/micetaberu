@@ -30,57 +30,57 @@ let collectibleSpeed = -200;
 let nextScoreTarget = 10;
 let retryButton;
 let eatSound;
-let level = 1; // 初始等級
-let levelText; // 等級顯示文本
-let skillObjectActive = false; // 技能物件是否啟動
-let skillObject; // 環繞角色的技能物件
-let skillTimer;
-let levelBounceTween; // 等級跳動效果的補間
+let levelUpSound;
+let levelText;
+let skill01Active = false;
+let skill01Object;
+let skill01Duration = 5000; // 技能持續時間5秒
+let skill01SpawnChance = 3; // 出現機率3%
+let level = 1;
+let stars; // 新增變數來管理背景星星
 
 const game = new Phaser.Game(config);
 
 function preload() {
-    this.load.image('player', 'images/player.png'); // 角色圖片
-    this.load.image('collectible', 'images/collectible.png'); // 普通可吃物件圖片
-    this.load.image('collectible02', 'images/collectible02.png'); // 特殊可吃物件圖片
-    this.load.image('skill01', 'images/skill01.png'); // 技能物件圖片
-    this.load.audio('eatSound', 'audio/eat.mp3'); // 吃到物件的音效
+    this.load.image('player', 'images/player.png');
+    this.load.image('collectible', 'images/collectible.png');
+    this.load.image('collectible02', 'images/collectible02.png');
+    this.load.image('skill01', 'images/skill01.png'); // SKILL01物件
+    this.load.audio('eatSound', 'audio/eat.mp3');
     this.load.audio('levelUpSound', 'audio/LEVELUP.MP3'); // 升級音效
+    this.load.image('star', 'images/star.png'); // 假設你有一張星星的圖片
 }
 
 function create() {
-    // 加載吃到物件的音效
     eatSound = this.sound.add('eatSound');
     levelUpSound = this.sound.add('levelUpSound');
 
-    // 創建角色
+    // 設定背景顏色
+    this.cameras.main.setBackgroundColor('#3d4464'); // 更改為#3d4464
+
     player = this.physics.add.sprite(100, 300, 'player');
     player.setCollideWorldBounds(true);
     player.body.setAllowGravity(false);
-    player.setVelocityY(100);
 
-    // 創建可吃物件組
     collectibles = this.physics.add.group();
     this.physics.add.overlap(player, collectibles, collectItem, null, this);
 
-    // 創建計分版
-    scoreText = this.add.text(550, 16, 'Score: 0', { fontSize: '32px', fill: '#fff', fontFamily: 'Rubik Bubbles' });
+    scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff', fontFamily: 'Rubik Bubbles' });
+    levelText = this.add.text(16, 60, 'LEVEL 1', { fontSize: '48px', fill: '#fff', fontFamily: 'Rubik Bubbles' });
+    timeText = this.add.text(650, 16, 'Time: 20', { fontSize: '32px', fill: '#fff', fontFamily: 'Rubik Bubbles' });
 
-    // 創建等級顯示
-    levelText = this.add.text(550, 60, 'LEVEL 1', { fontSize: '48px', fill: '#fff', fontFamily: 'Rubik Bubbles' });
+    // 添加星星作為背景
+    stars = this.add.group();
+    createStars(this);
 
-    // 創建時間顯示，置中上方
-    timeText = this.add.text(400, 16, 'Time: 20', { fontSize: '32px', fill: '#fff', fontFamily: 'Rubik Bubbles' }).setOrigin(0.5, 0);
-
-    // 設置點擊讓角色向上移動
-    this.input.on('pointerdown', function () {
-        player.setVelocityY(-200);
+    // 點擊事件來控制角色移動
+    this.input.on('pointerdown', () => {
+        movePlayerUp.call(this); // 移動角色向上
         if (this.sound.context.state === 'suspended') {
-            this.sound.context.resume(); // 恢復音頻上下文
+            this.sound.context.resume();
         }
-    }, this);
+    });
 
-    // 啟動計時器
     this.time.addEvent({
         delay: 1000,
         callback: updateTime,
@@ -89,36 +89,46 @@ function create() {
     });
 }
 
+function createStars(scene) {
+    for (let i = 0; i < 50; i++) { // 隨機產生 50 顆星星
+        let x = Phaser.Math.Between(0, scene.sys.game.config.width);
+        let y = Phaser.Math.Between(0, scene.sys.game.config.height);
+        let star = scene.add.image(x, y, 'star'); // 使用星星圖片
+        star.setScale(1); // 調整大小
+        stars.add(star);
+    }
+}
+
 function update(time, delta) {
     if (gameOver) {
         return;
     }
 
-    // 每隔固定時間生成可吃物件，且限制畫面最多出現 15 個
     collectibleSpawnTimer += delta;
     if (collectibleSpawnTimer > collectibleSpawnInterval && collectibles.getChildren().length < maxCollectibles) {
         collectibleSpawnTimer = 0;
         createCollectible(this);
     }
 
-    // 檢查可吃物件並刪除超出畫面的可吃物件
     collectibles.children.iterate(function (collectible) {
         if (collectible && collectible.x < -collectible.displayWidth) {
-            collectibles.remove(collectible, true, true); // 從組中移除並銷毀可吃物件
+            collectibles.remove(collectible, true, true);
         }
     });
 
-    // 角色自然下墜
+    // 每幀更新角色的速度，減少重力影響
     player.setVelocityY(player.body.velocity.y + 5);
 
-    // 技能物件持續環繞角色
-    if (skillObjectActive && skillObject) {
-        skillObject.x = player.x + 50 * Math.cos(time / 200); // 環繞效果
-        skillObject.y = player.y + 50 * Math.sin(time / 200);
-    }
+    // 更新星星位置
+    stars.children.iterate(function (star) {
+        star.x -= 1; // 每幀左移0.5像素
+        if (star.x < 0) {
+            star.x = this.sys.game.config.width; // 重新從右側出現
+            star.y = Phaser.Math.Between(0, this.sys.game.config.height); // 隨機高度
+        }
+    }, this);
 }
 
-// 更新遊戲時間的函數
 function updateTime() {
     if (gameTime > 0) {
         gameTime--;
@@ -128,136 +138,131 @@ function updateTime() {
     }
 }
 
-// 創建可吃物件的函數
 function createCollectible(scene) {
-    let randomYPosition = Phaser.Math.Between(100, 500); // 隨機 Y 軸生成位置
+    let randomYPosition = Phaser.Math.Between(100, 500);
     let collectible;
 
-    // 計算出現機率
-    let collectible02Chance = level < 3 ? 50 : 10; // LEVEL 3之前，出現機率為2%
+    // collectible02 出現機率的定義
+    let collectible02Chance = level < 3 ? 1 : (level >= 4 ? 5 : 10); // LEVEL 3之前 1%， LEVEL 4之後 5%，LEVEL 8之後 10%
 
-    // 隨機決定是否生成特殊可吃物件
-    if (Phaser.Math.Between(1, collectible02Chance) === 1) {
-        collectible = collectibles.create(800, randomYPosition, 'collectible02'); // 生成特殊可吃物件
-        collectible.scoreValue = 30; // 特殊可吃物件的分數
+    if (Phaser.Math.Between(1, 100) <= collectible02Chance) {
+        collectible = collectibles.create(800, randomYPosition, 'collectible02');
         collectible.setScale(1);
     } else {
-        collectible = collectibles.create(800, randomYPosition, 'collectible'); // 生成普通可吃物件
-        let randomScale = Phaser.Math.FloatBetween(0.5, 1); // 隨機大小
+        collectible = collectibles.create(800, randomYPosition, 'collectible');
+        let randomScale = Phaser.Math.FloatBetween(0.5, 1); // 確保在使用前定義
         collectible.setScale(randomScale);
-        collectible.scoreValue = Math.floor(5 - (randomScale * 4)); // 隨機得分
     }
+
+    // 分數範圍設定為1到10分
+    collectible.scoreValue = Math.floor(1 + (collectible.scale * 9)); // 根據大小設定分數
 
     collectible.setVelocityX(collectibleSpeed);
     collectible.setCollideWorldBounds(false);
     collectible.setOrigin(0, 0);
 }
 
-// 當角色碰到可吃物件時，更新分數
 function collectItem(player, collectible) {
-    score += collectible.scoreValue;
-    scoreText.setText('Score: ' + score);
+    if (collectible.texture.key === 'skill01') {
+        // 吃到SKILL01物件，啟動技能
+        activateSkill01();
+    } else {
+        score += collectible.scoreValue; // 根據可吃物件的分數更新
+        scoreText.setText('Score: ' + score);
+        eatSound.play();
 
-    // 播放吃到物件的音效
-    eatSound.play();
+        collectibles.remove(collectible, true, true);
 
-    // 檢查分數，若達到目標則增加時間和加快速度
-    if (score >= nextScoreTarget) {
-        gameTime += 10;
-        timeText.setText('Time: ' + gameTime);
-        collectibleSpeed -= 50;
-        collectibles.children.iterate(function (collectible) {
-            collectible.setVelocityX(collectibleSpeed);
-        });
+        if (score >= nextScoreTarget) {
+            gameTime += 10;
+            timeText.setText('Time: ' + gameTime);
+            collectibleSpeed -= 50;
 
-        nextScoreTarget *= 2; // 公比為2，下一目標是目前目標的2倍
+            collectibles.children.iterate(function (collectible) {
+                collectible.setVelocityX(collectibleSpeed);
+            });
 
-        // 增加等級
-        level++;
-        levelText.setText('LEVEL ' + level);
-        bounceLevelText(this); // 顯示跳動效果
-        levelUpSound.play(); // 播放升級音效
-        showLevelUpEffect(this); // 顯示等級放大淡出效果
-    }
+            nextScoreTarget *= 3; // 使用混合增長公式
 
-    collectibles.remove(collectible, true, true);
+            level++;
+            levelText.setText('LEVEL ' + level);
+            bounceLevelText(this);
 
-    // 若吃到的物件為特殊物件，則啟動技能效果
-    if (collectible.texture.key === 'collectible02') {
-        activateSkill(this);
-    }
-}
+            // 播放升級音效
+    levelUpSound.play();
 
-// 等級跳動效果
-function bounceLevelText(scene) {
-    if (levelBounceTween) {
-        levelBounceTween.stop(); // 停止之前的跳動效果
-    }
-
-    levelBounceTween = scene.tweens.add({
-        targets: levelText,
-        y: levelText.y - 10,
-        duration: 300,
-        yoyo: true,
-        repeat: 1
-    });
-}
-
-// 顯示等級放大淡出效果
-function showLevelUpEffect(scene) {
-    let levelUpText = scene.add.text(400, 300, 'LEVEL ' + level, { fontSize: '64px', fill: '#fff', fontFamily: 'Rubik Bubbles' }).setOrigin(0.5);
-    scene.tweens.add({
-        targets: levelUpText,
-        scale: 2,
-        alpha: 0,
-        duration: 1000,
-        onComplete: () => {
-            levelUpText.destroy();
+            
         }
+    }
+}
+
+// 啟動SKILL01技能
+function activateSkill01() {
+    skill01Active = true;
+
+    skill01Object = player.scene.physics.add.image(player.x, player.y, 'skill01');
+    skill01Object.setOrigin(0.5, 0.5);
+    skill01Object.setDepth(1); // 確保在玩家上面顯示
+
+    // 設置SKILL01的位置在玩家的上下
+    skill01Object.setPosition(player.x, player.y - 50); // 在玩家上方
+    skill01Object.setCollideWorldBounds(false);
+
+    // 擴張可吃物件判定範圍
+    player.setCircle(30 + 50, player.y, player.x); // 增加判定範圍
+
+    player.scene.time.delayedCall(skill01Duration, () => {
+        skill01Object.destroy();
+        skill01Active = false;
+        player.setCircle(30, player.y, player.x); // 恢復判定範圍
     });
 }
 
-// 啟動技能的函數
-function activateSkill(scene) {
-    skillObjectActive = true;
-    skillObject = scene.physics.add.sprite(player.x, player.y, 'skill01');
-    scene.physics.add.overlap(skillObject, collectibles, collectItem, null, scene);
-
-    // 設定每幀的旋轉效果
-    scene.tweens.add({
-        targets: skillObject,
-        rotation: 2 * Math.PI, // 完成一圈旋轉
-        duration: 5000, // 在5秒內完成一圈
-        repeat: -1, // 持續重複旋轉
-        ease: 'Linear' // 緩慢且均勻旋轉
-    });
-
-    skillTimer = scene.time.addEvent({
-        delay: 5000, // 環繞物件持續5秒
-        callback: () => {
-            skillObjectActive = false;
-            skillObject.destroy();
-        },
-        callbackScope: scene
-    });
+// 控制玩家向上移動
+function movePlayerUp() {
+    player.setVelocityY(-300);
 }
 
+// 遊戲結束
 function endGame() {
     gameOver = true;
-    retryButton = this.add.text(400, 300, 'Game Over\nClick to Retry', { fontSize: '64px', fill: '#fff', fontFamily: 'Rubik Bubbles' }).setOrigin(0.5);
-    retryButton.setInteractive();
 
-    retryButton.on('pointerdown', function () {
-        score = 0;
-        gameTime = 20;
-        collectibleSpeed = -200;
-        nextScoreTarget = 10;
-        level = 1;
-        collectibles.clear(true, true);
-        retryButton.destroy();
-        scoreText.setText('Score: 0');
-        levelText.setText('LEVEL 1');
-        timeText.setText('Time: 20');
-        gameOver = false;
+    this.physics.pause();
+    this.add.text(400, 200, 'Game Over', { fontSize: '64px', fill: '#fff', fontFamily: 'Rubik Bubbles' }).setOrigin(0.5);
+    this.add.text(400, 300, 'Final Score: ' + score, { fontSize: '48px', fill: '#fff', fontFamily: 'Rubik Bubbles' }).setOrigin(0.5);
+
+    retryButton = this.add.text(400, 400, 'Retry', { fontSize: '32px', fill: '#fff', fontFamily: 'Rubik Bubbles' })
+        .setInteractive()
+        .on('pointerdown', () => {
+            restartGame.call(this);
+        });
+}
+
+// 跳轉到重新開始遊戲
+function restartGame() {
+    score = 0;
+    gameTime = 20;
+    level = 1;
+    collectibleSpeed = -200;
+    nextScoreTarget = 10;
+    gameOver = false;
+    collectibles.clear(true, true);
+    levelText.setText('LEVEL 1');
+    scoreText.setText('Score: 0');
+    timeText.setText('Time: 20');
+
+    retryButton.destroy();
+    this.scene.restart();
+}
+
+// 字體抖動效果
+function bounceLevelText(scene) {
+    levelText.setScale(1.5); // 放大
+    scene.tweens.add({
+        targets: levelText,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 300,
+        ease: 'Bounce.easeOut',
     });
 }
