@@ -194,7 +194,7 @@ function endGame() {
 
     // 创建半透明背景
     background = this.add.graphics();
-    background.fillStyle(0xaaaaaa, 0.5); // 灰色，50%透明度
+    background.fillStyle(0xaaaaaa, 1); // 灰色，50%透明度
     background.fillRoundedRect(200, 150, 400, 300, 20); // 圆角矩形
 
     // 显示结束 UI
@@ -203,7 +203,7 @@ function endGame() {
 
     // 创建重试按钮背景
     let retryButtonBackground = this.add.graphics();
-    retryButtonBackground.fillStyle(0xaaaaaa, 0.5); // 背景灰色，50%透明度
+    retryButtonBackground.fillStyle(0xaaaaaa, 1); // 背景灰色，50%透明度
     retryButtonBackground.fillRoundedRect(350, 400, 100, 50, 10); // 圆角矩形
 
     // 创建重试按钮
