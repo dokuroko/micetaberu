@@ -1,0 +1,24 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* 隱藏滾動條 */
+}
+
+#gameContainer {
+    width: 800px; /* 固定寬度 */
+    height: 600px; /* 固定高度 */
+    margin: 0 auto; /* 置中 */
+    background-color: #2e344c; /* 背景顏色 */
+    aspect-ratio: 4 / 3; /* 設定寬高比 */
+}
+/* 手機樣式 */
+@media (max-width: 768px) {
+    #gameContainer {
+        width: 100%; /* 手機上寬度適應 */
+        height: auto; /* 高度自動調整以保持比例 */
+        max-width: 400px; /* 可選：設定最大寬度以保持顯示效果 */
+    }
+    body {
+        font-size: 5px; /* 手機上的字體大小 */
+    }
+}

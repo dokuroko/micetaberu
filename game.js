@@ -1,7 +1,8 @@
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: 800,  // PC 解析度 800
+    height: 600, // PC 解析度 600
+    parent: 'gameContainer',
     physics: {
         default: 'arcade',
         arcade: {
@@ -13,8 +14,23 @@ const config = {
         preload: preload,
         create: create,
         update: update
+    },
+    scale: {
+        mode: Phaser.Scale.FIT,  // 讓遊戲適應屏幕
+        autoCenter: Phaser.Scale.CENTER_BOTH,  // 置中顯示
     }
 };
+
+// 添加事件監聽器來動態調整遊戲畫布大小
+window.addEventListener('resize', () => {
+    game.scale.resize(800, 600); // 固定為 800x600
+});
+
+// 用於手機的設置
+if (window.innerWidth <= 360) {
+    game.scale.resize(480, 360); // 手機解析度
+}
+
 
 let player;
 let collectibles;
@@ -39,6 +55,10 @@ let backgroundMusic;
 let gameOverText;
 let finalScoreText;
 let gameEnded = false; // 新增標誌以避免重複觸發
+let collectible02ChanceText;
+let collectible02ChanceLabel;
+let collectible02Chance = 1; // 初始出現率為 1%
+
 
 const game = new Phaser.Game(config);
 
@@ -47,7 +67,7 @@ function preload() {
     this.load.image('collectible', 'images/collectible.png');
     this.load.image('collectible02', 'images/collectible02.png');
     this.load.audio('eatSound', 'audio/eat.mp3');
-    this.load.audio('levelUpSound', 'audio/LEVELUP.MP3');
+    this.load.audio('levelUpSound', 'audio/levelup.mp3');
     this.load.audio('backgroundMusic', 'audio/background.mp3');
     this.load.audio('finishSound', 'audio/finish.mp3');
     this.load.image('star', 'images/star.png');
@@ -75,9 +95,14 @@ function create() {
     collectibles = this.physics.add.group();
     this.physics.add.overlap(player, collectibles, collectItem, null, this);
 
-    scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff', fontFamily: 'Rubik Bubbles' });
-    levelText = this.add.text(16, 60, 'LEVEL 1', { fontSize: '48px', fill: '#fff', fontFamily: 'Rubik Bubbles' });
-    timeText = this.add.text(650, 16, 'Time: 20', { fontSize: '32px', fill: '#fff', fontFamily: 'Rubik Bubbles' });
+    scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff', fontFamily: 'Dela Gothic One' });
+    levelText = this.add.text(16, 60, 'LEVEL 1', { fontSize: '48px', fill: '#fff', fontFamily: 'Dela Gothic One' });
+    timeText = this.add.text(600, 16, 'Time: 20', { fontSize: '32px', fill: '#fff', fontFamily: 'Dela Gothic One' });
+    // 創建 "瓜子出現率" 標籤
+    collectible02ChanceLabel = this.add.text(700, 500, '瓜子發生率', { fontSize: '24px', fill: '#fff', fontFamily: 'Dela Gothic One' }).setOrigin(0.5);
+    
+    // 創建 collectible02 出現機率文本
+    collectible02ChanceText = this.add.text(650, 550, '1%', { fontSize: '96px', fill: '#fff', fontFamily: 'Dela Gothic One' }).setOrigin(0.5);
 
     stars = this.add.group();
     createStars(this);
@@ -133,6 +158,8 @@ function update(time, delta) {
             star.y = Phaser.Math.Between(0, this.sys.game.config.height);
         }
     }, this);
+    // 更新 collectible02 的出現機率顯示
+    collectible02ChanceText.setText(`${Math.floor(collectible02Chance)}%`);
 }
 
 function updateTime() {
@@ -148,7 +175,7 @@ function createCollectible(scene) {
     let randomYPosition = Phaser.Math.Between(100, 500);
     let collectible;
 
-    let collectible02Chance = level < 3 ? 1 : (level >= 4 ? 5 : 50);
+    let collectible02Chance = 1 + (level - 1); // 每升一級增加 1%
 
     if (Phaser.Math.Between(1, 100) <= collectible02Chance) {
         collectible = collectibles.create(800, randomYPosition, 'collectible02');
@@ -163,6 +190,11 @@ function createCollectible(scene) {
     collectible.setVelocityX(collectibleSpeed);
     collectible.setCollideWorldBounds(false);
     collectible.setOrigin(0, 0);
+}
+// 更新 collectible02Chance 的顯示
+function updateCollectible02Chance() {
+    let collectible02Chance = (1 + level * 1).toFixed(1); // 獲取 collectible02 出現的機率
+    collectible02ChanceText.setText(`${collectible02Chance}%`);
 }
 
 function collectItem(player, collectible) {
@@ -182,13 +214,19 @@ function collectItem(player, collectible) {
         });
 
         level++;
-        nextScoreTarget = 10 * Math.pow(level, 2);
+        nextScoreTarget = 10 * Math.pow(level, 1.8);
+
+        // 隨機增加 collectible02 機率
+        let additionalChance = Phaser.Math.Between(1, 3);
+        collectible02Chance += additionalChance; // 增加出現機率
+        collectible02ChanceText.setText(collectible02Chance.toFixed(1) + '%'); // 更新顯示
 
         levelText.setText('LEVEL ' + level);
         bounceLevelText(this);
         levelUpSound.play();
     }
 }
+
 
 function movePlayerUp() {
     player.setVelocityY(-300);
@@ -205,10 +243,10 @@ function endGame() {
     finishSound.play(); // 播放結束音效
 
     // 創建 Game Over 文本
-    gameOverText = this.add.text(400, 200, 'Game Over', { fontSize: '64px', fill: '#fff', fontFamily: 'Rubik Bubbles' }).setOrigin(0.5);
-    finalScoreText = this.add.text(400, 300, 'Final Score: ' + score, { fontSize: '48px', fill: '#fff', fontFamily: 'Rubik Bubbles' }).setOrigin(0.5);
+    gameOverText = this.add.text(400, 200, 'Game Over', { fontSize: '64px', fill: '#fff', fontFamily: 'Dela Gothic One' }).setOrigin(0.5);
+    finalScoreText = this.add.text(400, 300, 'Final Score: ' + score, { fontSize: '48px', fill: '#fff', fontFamily: 'Dela Gothic One' }).setOrigin(0.5);
 
-    retryButton = this.add.text(400, 400, 'Retry', { fontSize: '32px', fill: '#fff', fontFamily: 'Rubik Bubbles' })
+    retryButton = this.add.text(400, 400, 'Retry', { fontSize: '32px', fill: '#fff', fontFamily: 'Dela Gothic One' })
         .setInteractive()
         .on('pointerdown', () => {
             restartGame.call(this);
@@ -222,12 +260,14 @@ function restartGame() {
     gameTime = 20;
     nextScoreTarget = 10;
     collectibleSpeed = -200;
+    collectible02Chance = 1; // 重置 collectible02 的出現機率為 1%
     gameOver = false;
     gameEnded = false; // 重置遊戲結束標誌
 
     scoreText.setText('Score: 0');
     levelText.setText('LEVEL 1');
     timeText.setText('Time: 20');
+    collectible02ChanceText.setText(collectible02Chance.toFixed(0) + '%'); // 更新 collectible02 的出現機率文本為 1%
 
     collectibles.clear(true, true);
     this.physics.resume();
