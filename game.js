@@ -71,6 +71,10 @@ function preload() {
     this.load.audio('backgroundMusic', 'audio/background.mp3');
     this.load.audio('finishSound', 'audio/finish.mp3');
     this.load.image('star', 'images/star.png');
+    this.load.image('hal01', 'images/hal01.png');
+    this.load.image('hal02', 'images/hal02.png');
+    this.load.image('hal03', 'images/hal03.png');
+
 }
 
 function create() {
@@ -89,10 +93,12 @@ function create() {
     this.cameras.main.setBackgroundColor('#3d4464');
 
     player = this.physics.add.sprite(300, 300, 'player');
+    player.setDepth(2);
     player.setCollideWorldBounds(true);
     player.body.setAllowGravity(false);
 
     collectibles = this.physics.add.group();
+    collectibles.setDepth(2);
     this.physics.add.overlap(player, collectibles, collectItem, null, this);
 
     scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff', fontFamily: 'Dela Gothic One' });
@@ -204,6 +210,11 @@ function collectItem(player, collectible) {
 
     collectibles.remove(collectible, true, true);
 
+    // 產生隨機圖片
+    createRandomHalImages.call(this, collectible.x, collectible.y);
+
+    collectibles.remove(collectible, true, true);
+
     if (score >= nextScoreTarget) {
         gameTime += 5;
         timeText.setText('Time: ' + gameTime);
@@ -301,3 +312,45 @@ function bounceLevelText(scene) {
         }
     });
 }
+// 產生隨機 hal 圖像的函數
+function createRandomHalImages(x, y) {
+    let halImages = ['hal01', 'hal02', 'hal03'];
+
+    for (let i = 0; i < 2; i++) {
+        // 隨機選擇圖片
+        let randomImage = Phaser.Math.RND.pick(halImages);
+
+        // 隨機設定圖片大小 0.8 ~ 1.5 倍
+        let randomScale = Phaser.Math.FloatBetween(0.5, 2.5);
+
+        // 在給定的座標位置創建圖片
+        let hal = this.add.sprite(x , y -(20,-20), randomImage);
+
+        // 設置隨機的初始縮放大小
+        hal.setScale(randomScale);
+        hal.setAlpha(0.8);
+
+        // 添加彈跳效果
+        this.tweens.add({
+            targets: hal,
+            x: x - (50,100),
+            y: y - 0, // 上升一點來模擬彈跳
+            scaleX: randomScale * 1.5, // 彈跳過程中放大
+            scaleY: randomScale * 1.5, // 彈跳過程中放大
+            duration: 100,
+            ease: 'Bounce.easeOut',
+            onComplete: () => {
+                // 淡出效果
+                this.tweens.add({
+                    targets: hal,
+                    alpha: 0,
+                    duration: 300,
+                    onComplete: () => {
+                        hal.destroy(); // 生命週期結束後銷毀
+                    }
+                });
+            }
+        });
+    }
+}
+
