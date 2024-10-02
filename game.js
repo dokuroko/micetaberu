@@ -321,7 +321,7 @@ function createRandomHalImages(x, y) {
         let randomImage = Phaser.Math.RND.pick(halImages);
 
         // 隨機設定圖片大小 0.8 ~ 1.5 倍
-        let randomScale = Phaser.Math.FloatBetween(0.5, 2.5);
+        let randomScale = Phaser.Math.FloatBetween(0.12, 0.6);
 
         // 在給定的座標位置創建圖片
         let hal = this.add.sprite(x , y -(20,-20), randomImage);
