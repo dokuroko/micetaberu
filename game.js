@@ -131,8 +131,8 @@ function create() {
     // 创建 collectible 的动画
     this.anims.create({
         key: 'collectible_anim',
-        frames: this.anims.generateFrameNumbers('collectible', { start: 0, end: 3 }), // 設定幀範圍
-        frameRate: 6, // 幀率
+        frames: this.anims.generateFrameNumbers('collectible', { start: 0, end: 2 }), // 設定幀範圍
+        frameRate: 2, // 幀率
         repeat: -1 // 循環播放
     });
 
