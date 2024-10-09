@@ -103,7 +103,7 @@ function create() {
     this.anims.create({
         key: 'run', // 动画的名称
         frames: this.anims.generateFrameNumbers('player', { start: 1, end: 5 }), // 播放第二帧到最后一帧
-        frameRate: 12, // 帧率
+        frameRate: 15, // 帧率
         repeat: 0 // 播放一次
     });
 
@@ -294,7 +294,7 @@ function endGame() {
     finishSound.play(); // 播放結束音效
 
     // 創建 Game Over 文本
-    gameOverText = this.add.text(400, 200, 'Game Over', { fontSize: '64px', fill: '#fff', fontFamily: 'Dela Gothic One' }).setOrigin(0.5);
+    gameOverText = this.add.text(400, 200, 'Trick or Treat', { fontSize: '64px', fill: '#ff8c20', fontFamily: 'Dela Gothic One' }).setOrigin(0.5);
     finalScoreText = this.add.text(400, 300, 'Final Score: ' + score, { fontSize: '48px', fill: '#fff', fontFamily: 'Dela Gothic One' }).setOrigin(0.5);
 
     retryButton = this.add.text(400, 400, 'Retry', { fontSize: '32px', fill: '#fff', fontFamily: 'Dela Gothic One' })
