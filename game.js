@@ -132,7 +132,7 @@ function create() {
     this.anims.create({
         key: 'collectible_anim',
         frames: this.anims.generateFrameNumbers('collectible', { start: 0, end: 3 }), // 設定幀範圍
-        frameRate: 10, // 幀率
+        frameRate: 6, // 幀率
         repeat: -1 // 循環播放
     });
 
