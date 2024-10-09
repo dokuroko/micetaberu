@@ -64,7 +64,7 @@ let isPlaying = false; // 初始化為 false 或其他適當的值
 const game = new Phaser.Game(config);
 
 function preload() {
-    this.load.spritesheet('collectible', 'images/collectible0000.png', { frameWidth: 95, frameHeight: 95 });
+    this.load.spritesheet('collectible', 'images/collectible.png', { frameWidth: 128, frameHeight: 128 });
     this.load.image('collectible02', 'images/collectible02.png');
     this.load.audio('eatSound', 'audio/eat.mp3');
     this.load.audio('levelUpSound', 'audio/levelup.mp3');
