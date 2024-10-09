@@ -58,13 +58,13 @@ let gameEnded = false; // 新增標誌以避免重複觸發
 let collectible02ChanceText;
 let collectible02ChanceLabel;
 let collectible02Chance = 1; // 初始出現率為 1%
+let isPlaying = false; // 初始化為 false 或其他適當的值
 
 
 const game = new Phaser.Game(config);
 
 function preload() {
-    this.load.image('player', 'images/player.png');
-    this.load.image('collectible', 'images/collectible.png');
+    this.load.spritesheet('collectible', 'images/collectible0000.png', { frameWidth: 95, frameHeight: 95 });
     this.load.image('collectible02', 'images/collectible02.png');
     this.load.audio('eatSound', 'audio/eat.mp3');
     this.load.audio('levelUpSound', 'audio/levelup.mp3');
@@ -74,6 +74,7 @@ function preload() {
     this.load.image('hal01', 'images/hal01.png');
     this.load.image('hal02', 'images/hal02.png');
     this.load.image('hal03', 'images/hal03.png');
+    this.load.spritesheet('player', 'images/player_sprite.png', { frameWidth: 150, frameHeight: 173 });
 
 }
 
@@ -92,14 +93,48 @@ function create() {
 
     this.cameras.main.setBackgroundColor('#3d4464');
 
-    player = this.physics.add.sprite(300, 300, 'player');
+    player = this.physics.add.sprite(400, 300, 'player', 0); // 默认显示第一帧
+    player.body.setSize(150, 150);
     player.setDepth(2);
     player.setCollideWorldBounds(true);
     player.body.setAllowGravity(false);
 
+    // 创建动画
+    this.anims.create({
+        key: 'run', // 动画的名称
+        frames: this.anims.generateFrameNumbers('player', { start: 1, end: 5 }), // 播放第二帧到最后一帧
+        frameRate: 12, // 帧率
+        repeat: 0 // 播放一次
+    });
+
+    // 监听点击事件，当点击时触发动画
+    this.input.on('pointerdown', () => {
+        // 如果动画已经在播放，则不做任何操作，防止重叠播放
+        if (!isPlaying) {
+            isPlaying = true; // 标记动画正在播放
+            player.anims.play('run'); // 播放动画
+        }
+    });
+    
+
+    // 当动画播放完毕时恢复到第一帧并允许重新播放
+    player.on('animationcomplete', () => {
+        player.setFrame(0); // 恢复到第一帧
+        isPlaying = false; // 允许重新播放动画
+    });
+    
+    
+
     collectibles = this.physics.add.group();
     collectibles.setDepth(2);
     this.physics.add.overlap(player, collectibles, collectItem, null, this);
+    // 创建 collectible 的动画
+    this.anims.create({
+        key: 'collectible_anim',
+        frames: this.anims.generateFrameNumbers('collectible', { start: 0, end: 3 }), // 設定幀範圍
+        frameRate: 10, // 幀率
+        repeat: -1 // 循環播放
+    });
 
     scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff', fontFamily: 'Dela Gothic One' });
     levelText = this.add.text(16, 60, 'LEVEL 1', { fontSize: '48px', fill: '#fff', fontFamily: 'Dela Gothic One' });
@@ -190,12 +225,15 @@ function createCollectible(scene) {
         collectible = collectibles.create(800, randomYPosition, 'collectible');
         let randomScale = Phaser.Math.FloatBetween(0.5, 1);
         collectible.setScale(randomScale);
+        // 播放動畫
+        collectible.anims.play('collectible_anim');
     }
 
     collectible.scoreValue = Math.floor(1 + (collectible.scale * 9));
     collectible.setVelocityX(collectibleSpeed);
     collectible.setCollideWorldBounds(false);
     collectible.setOrigin(0, 0);
+
 }
 // 更新 collectible02Chance 的顯示
 function updateCollectible02Chance() {
@@ -209,6 +247,8 @@ function collectItem(player, collectible) {
     eatSound.play();
 
     collectibles.remove(collectible, true, true);
+    // 随机旋转 -60 到 60 度
+    collectible.angle = Phaser.Math.Between(-60, 60);
 
     // 產生隨機圖片
     createRandomHalImages.call(this, collectible.x, collectible.y);
@@ -216,7 +256,7 @@ function collectItem(player, collectible) {
     collectibles.remove(collectible, true, true);
 
     if (score >= nextScoreTarget) {
-        gameTime += 5;
+        gameTime += 3;
         timeText.setText('Time: ' + gameTime);
         collectibleSpeed -= 50;
 
@@ -228,7 +268,7 @@ function collectItem(player, collectible) {
         nextScoreTarget = 10 * Math.pow(level, 1.8);
 
         // 隨機增加 collectible02 機率
-        let additionalChance = Phaser.Math.Between(1, 3);
+        let additionalChance = Phaser.Math.Between(1, 5);
         collectible02Chance += additionalChance; // 增加出現機率
         collectible02ChanceText.setText(collectible02Chance.toFixed(1) + '%'); // 更新顯示
 
