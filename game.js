@@ -65,7 +65,7 @@ const game = new Phaser.Game(config);
 
 function preload() {
     this.load.spritesheet('collectible', 'images/collectible.png', { frameWidth: 128, frameHeight: 128 });
-    this.load.image('collectible02', 'images/collectible02.png');
+    this.load.spritesheet('collectible02', 'images/collectible02.png', { frameWidth: 64, frameHeight: 64 });
     this.load.audio('eatSound', 'audio/eat.mp3');
     this.load.audio('levelUpSound', 'audio/levelup.mp3');
     this.load.audio('backgroundMusic', 'audio/background.mp3');
@@ -93,7 +93,7 @@ function create() {
 
     this.cameras.main.setBackgroundColor('#3d4464');
 
-    player = this.physics.add.sprite(400, 300, 'player', 0); // 默认显示第一帧
+    player = this.physics.add.sprite(250, 300, 'player', 0); // 默认显示第一帧
     player.body.setSize(150, 150);
     player.setDepth(2);
     player.setCollideWorldBounds(true);
@@ -133,6 +133,12 @@ function create() {
         key: 'collectible_anim',
         frames: this.anims.generateFrameNumbers('collectible', { start: 0, end: 2 }), // 設定幀範圍
         frameRate: 2, // 幀率
+        repeat: -1 // 循環播放
+    });
+    this.anims.create({
+        key: 'collectible02_anim',
+        frames: this.anims.generateFrameNumbers('collectible02', { start: 0, end: 7 }), // 設定幀範圍
+        frameRate: 6, // 幀率
         repeat: -1 // 循環播放
     });
 
@@ -221,6 +227,8 @@ function createCollectible(scene) {
     if (Phaser.Math.Between(1, 100) <= collectible02Chance) {
         collectible = collectibles.create(800, randomYPosition, 'collectible02');
         collectible.setScale(1);
+        // 播放動畫
+        collectible.anims.play('collectible02_anim');
     } else {
         collectible = collectibles.create(800, randomYPosition, 'collectible');
         let randomScale = Phaser.Math.FloatBetween(0.5, 1);
