@@ -23,7 +23,7 @@ const config = {
 
 // 添加事件監聽器來動態調整遊戲畫布大小
 window.addEventListener('resize', () => {
-    game.scale.resize(1600, 1200); // 固定為 800x600
+    game.scale.resize(800, 600); // 固定為 800x600
 });
 
 // 用於手機的設置
