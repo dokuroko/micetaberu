@@ -1,7 +1,7 @@
 const config = {
     type: Phaser.AUTO,
-    width: 1920,  // PC 解析度 800
-    height: 1080, // PC 解析度 600
+    width: 800,  // PC 解析度 800
+    height: 600, // PC 解析度 600
     parent: 'gameContainer',
     physics: {
         default: 'arcade',
@@ -23,7 +23,7 @@ const config = {
 
 // 添加事件監聽器來動態調整遊戲畫布大小
 window.addEventListener('resize', () => {
-    game.scale.resize(1920, 1080); // 固定為 800x600
+    game.scale.resize(1600, 1200); // 固定為 800x600
 });
 
 // 用於手機的設置
